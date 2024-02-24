@@ -1,6 +1,8 @@
-# Example Run:
+# Dependencies
+pandas, pytorch, gpytorch, numpy, pickle
+# Example Run
 ## Setup
-1. python .\BatchGeneration.py "Data_2.08.csv"
+1. python .\BatchGeneration.py "Data_2.07.csv"
     - generates sample datasets by substrate (with both calibration and full sets each)
 2. python .\MatlabSim.py "Data_2.07"
     - generates m selected samples as specified within MatlabSim.py as a starting point
