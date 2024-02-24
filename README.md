@@ -13,6 +13,6 @@
 (this is where Matlab actually grows the sample at target temperature)
 2. python .\AppendToCurrent.py .\Current.xlsx .\FullData.csv
     - give it the full dataset for a given substrate after growth
-(repeat)
+3. (repeat)
 ## Active Testing Cycle
 WIP
