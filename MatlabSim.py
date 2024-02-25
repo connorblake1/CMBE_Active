@@ -24,8 +24,7 @@ def stack(fname,basedf,value):
     result_df = pd.concat([basedf,df2],ignore_index=True)
     result_df.to_csv(fname,index=False)
 
-data_start = [(875,True),(875,False),(845,True),(845,False),
-              (860,True),(860,False),(840,True),(840,False)]
+data_start = [(830,False),(840,False),(850,False),(860,False),(870,False),(880,False),(890,False),(900,False),(910,False)]
 
 for key in data_start:
     avail_dict[key[0]] = False

@@ -2,19 +2,22 @@ import sys
 import pandas as pd
 import os
 import subprocess
+from datetime import datetime
 sys.path.append(r"C:\Users\theco\OneDrive\Desktop\YangLab\Enviro")
 from ParsingUtils import *
 # Read the data from the previously modified file and stack OR just read data to make prediction
 if len(sys.argv) == 4:
     processed_data_path = sys.argv[1]
+    calib_filename_noext, calib_extension = os.path.splitext(sys.argv[2])
+    calib_filename_noextdot = calib_filename_noext[2:]
     # Stepper(processed_data_path)
 elif len(sys.argv) == 2:
     # argv = [0th is something idk, Current excel name (if successively stacked already), output file name]
     old_filename_noext, extension = os.path.splitext(sys.argv[1])
     ProcessData(old_filename_noext+extension,old_filename_noext+"Processed.xlsx")
     df3 = pd.read_excel(old_filename_noext+"Processed.xlsx")
-    df3.to_excel("Current.xlsx", index=False)
-    processed_data_path = "Current.xlsx"
+    processed_data_path = old_filename_noext+".xlsx"
+    df3.to_excel(processed_data_path, index=False)
     exit()
 else:
     print("ERROR: WRONG NUMBER OF ARGV INPUTS")
@@ -39,7 +42,6 @@ from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood
 # Regression
-# 5-Fold Cross Validation on 443
 
 df = pd.read_excel(processed_data_path)
 print("Loaded...")
@@ -53,15 +55,15 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
 # Save the scaler for future inverse transformation or application
-joblib.dump(scaler, 'scaler_R.pkl')
+joblib.dump(scaler, 'scaler_R'+calib_filename_noextdot+'.pkl')
 
 # Convert scaled data and target to PyTorch tensors
 X_train_R = torch.tensor(X_scaled, dtype=torch.float32)
 y_train_R = torch.tensor(y, dtype=torch.float32).reshape(-1)
 
 # Save the tensors
-torch.save(X_train_R, 'X_train_R.pt')
-torch.save(y_train_R, 'y_train_R.pt')
+torch.save(X_train_R, 'X_train_R'+calib_filename_noextdot+'.pt')
+torch.save(y_train_R, 'y_train_R'+calib_filename_noextdot+'.pt')
 
 
 # Define the GP Model
@@ -110,7 +112,7 @@ for i in range(50):
     prev_loss = loss_R.item()
 
 # Save the model state
-torch.save(model_R.state_dict(), 'model_R.pth') # TODO Rename
+torch.save(model_R.state_dict(), 'model_R'+calib_filename_noextdot+'.pth')
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -123,17 +125,12 @@ from tqdm import tqdm
 temperatures = np.arange(840, 911, 1)  # Temperature range
 wavelengths = [443, 514, 689, 781, 817]  # Wavelengths
 times = np.arange(1, 5001, 250)  # Time range
-calib_filename_noext, calib_extension = os.path.splitext(sys.argv[2])
-calib_temp_name= "CurrentCalibration.xlsx"
-# ProcessData(calib_filename_noext+calib_extension,calib_temp_name)
 calibrations = pull_calib(calib_filename_noext+calib_extension)
 print(calibrations)
 fixed_689Rc = calibrations['689Rc']
-calib_filename_noext = calib_filename_noext[2:]
-print("689Rc Extracted from " + calib_filename_noext + " with value of " + str(np.round(fixed_689Rc,3)))
+print("689Rc Extracted from " + calib_filename_noextdot + " with value of " + str(np.round(fixed_689Rc,3)))
 
 # Load the model and scaler
-# model_R.load_state_dict(torch.load("model_R.pth")) # TODO necessary?
 model_R.eval()
 # scaler = joblib.load("scaler.pkl")
 
@@ -175,7 +172,7 @@ plt.ylabel('Sum of Variances')
 plt.title('Sum of Variances vs Temperature')
 plt.legend()
 plt.grid(True)
-plt.savefig("SumOfVariances_"+calib_filename_noext+".png")
+plt.savefig("SumOfVariances_"+calib_filename_noextdot+".png")
 plt.clf()
 # plt.show()
 
@@ -196,10 +193,10 @@ def write_to_csv(value):
     if not os.path.isfile(output_log_name):
         with open(output_log_name, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['Date and Time', 'TempC'])
+            writer.writerow(['Date and Time','Calibration Name','TempC'])
     with open(output_log_name, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow([current_datetime, value])
+        writer.writerow([current_datetime, calib_filename_noextdot,value])
 write_to_csv(optimal_temperature)
 
 print(optimal_temperature)
