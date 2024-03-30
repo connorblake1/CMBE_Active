@@ -5,6 +5,11 @@ def pull_calib(raw_input_name):
     Stepper(raw_input_name)
     data = pd.read_csv(raw_input_name)
 
+
+    # Extract the temperature value from this row
+    last_row_with_step_1 = data[data['step'] == 1].iloc[-1]
+    time_calib = last_row_with_step_1['time']
+
     # Create a new dataframe with the desired structure
     output = pd.DataFrame(columns=['substrate', 'temperature', 'time', 'wav', 'back', 'T', 'R', 'P', 'step'])
 
@@ -70,7 +75,7 @@ def pull_calib(raw_input_name):
 
     # Load the data
     df = final_output_df
-    filtered_df = df[(df['step'] == 1) & (df['time'] == 1000)].tail(1)
+    filtered_df = df[(df['step'] == 1) & (df['time'] == time_calib)].tail(1)
 
     # If the filtered dataframe is not empty, store the required values
     if not filtered_df.empty:
@@ -181,13 +186,17 @@ def ProcessData(raw_input_name, processed_output_name):
         final_output_data.append(row_data)
 
     final_output_df = pd.DataFrame(final_output_data)
+    #print(final_output_df.columns.tolist())
+
     # final_output_df.to_excel(file_name_raw+"stupid.xlsx",index=False)
     import numpy as np
     import pickle
 
     # Load the data
     df = final_output_df
-    filtered_df = df[(df['step'] == 1) & (df['time'] == 1000)].tail(1)
+    last_row_with_step_1 = df[df['step'] == 1].iloc[-1]
+    time_calib = last_row_with_step_1['time']
+    filtered_df = df[(df['step'] == 1) & (df['time'] == time_calib)].tail(1)
     # If the filtered dataframe is not empty, store the required values
     if not filtered_df.empty:
         values = filtered_df[['443R', '443A', '514R', '514A', '689R', '689A', '781R', '781A', '817R', '817A']].iloc[0]
@@ -200,8 +209,8 @@ def ProcessData(raw_input_name, processed_output_name):
     # with open(folder_prefix + "stored_values.pkl", 'wb') as file:
     #     pickle.dump(stored_values, file)
     # </2/5 new cb>
-    # Step 1: Extract corrected values when step=1 and time=1000
-    corrected_rows = df[(df['step'] == 1) & (df['time'] == 1000)]
+    # Step 1: Extract corrected values when step=1 and time=time_calib
+    corrected_rows = df[(df['step'] == 1) & (df['time'] == time_calib)]
     corrected_rows = corrected_rows.drop_duplicates(subset='substrate').set_index('substrate')
     corrected_cols = {col: f'{col}c' for col in corrected_rows.columns if 'R' in col or 'A' in col}
     corrected_rows.rename(columns=corrected_cols, inplace=True)
@@ -211,6 +220,7 @@ def ProcessData(raw_input_name, processed_output_name):
 
     # Step 3: Merge the corrected values with the original dataframe
     df = df.join(corrected_rows[corrected_cols.values()], on='substrate')
+    print(df.columns.tolist())
 
     # Define wavelengths and transformation function
     wavelengths = {
@@ -238,7 +248,7 @@ def ProcessData(raw_input_name, processed_output_name):
     # Step 4: Transform the data
     transformed_data = [new_row for _, row in df.iterrows() for new_row in transform_data(row)]
     final_df = pd.DataFrame(transformed_data)
-
+    print(final_df.columns.tolist())
     # Filter values below 0 or above 1
     columns_to_check = ['443Rc', '514Rc', '689Rc', '781Rc', '817Rc', '443Ac', '514Ac', '689Ac', '781Ac', '817Ac', 'R',
                         'A']

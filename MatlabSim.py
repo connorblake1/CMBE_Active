@@ -2,8 +2,6 @@ import sys
 import subprocess
 import pandas as pd
 batch_name = sys.argv[1]
-valid = [840,845,850,855,860,865,870,875,880]
-avail_dict = {key: True for key in valid}
 
 def getfname(valt):
     val, iscal = valt
@@ -23,12 +21,9 @@ def stack(fname,basedf,value):
     df2 = pd.read_csv(getfname(value))
     result_df = pd.concat([basedf,df2],ignore_index=True)
     result_df.to_csv(fname,index=False)
-
+data_start = [(830,False),(840,False),(845,False),(850,False),(855,False),(860,False),(865,False),(870,False),(875,False),(880,False),(885,False),(890,False),(895,False),(900,False),(910,False)]
 data_start = [(830,False),(840,False),(850,False),(860,False),(870,False),(880,False),(890,False),(900,False),(910,False)]
-
-for key in data_start:
-    avail_dict[key[0]] = False
-print(avail_dict)
+#data_start = [(830,False),(860,False),(890,False),(900,False),(910,False)]
 PassiveDF = build_from_list("Current.csv",data_start)
 
 
