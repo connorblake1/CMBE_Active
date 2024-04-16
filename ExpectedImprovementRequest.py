@@ -206,23 +206,26 @@ def expected_improvement(x):
 #     if res.fun < min_val:
 #         min_val = res.fun
 #         min_x = res.x
-n_restarts = 50
+n_restarts = 25
 stupid_min_val = 1000
 stupid_min_x = None
 minshots = []
 meth = "Nelder-Mead"
-for x0 in np.random.uniform(boundsIn[:, 0], boundsIn[:, 1], size=(n_restarts, 2)):
+deltaT = 50
+deltat = 2000
+fatol = .1
+for x0 in tqdm(np.random.uniform(boundsIn[:, 0], boundsIn[:, 1], size=(n_restarts, 2))):
     # 5000 + 100 * (910 - temperature)
-    stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method=meth,options={'fatol':.01})
+    stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method=meth,options={'initial_simplex':[[x0[0],x0[1]],[x0[0]+deltat,x0[1]],[x0[0],x0[1]+deltaT]],'fatol':fatol})
     minshots.append((stupidsol.x[0],stupidsol.x[1],stupidsol.fun,x0[0],x0[1]))
     print(len(minshots))
-    print("Min Sample Shot " + str(np.round(stupidsol.x[0],4)) + " " + str(np.round(stupidsol.x[1],4)) + ": " + str(np.round(stupidsol.fun,4)))
+    print("Min Sample Shot " + str(np.round(stupidsol.x[0],4)) + " " + str(np.round(stupidsol.x[1],4)) + ": " + str(np.round(stupidsol.fun,4)) + " retries: " + str(stupidsol.nfev))
     if stupidsol.fun < stupid_min_val:
         stupid_min_val = stupidsol.fun
         stupid_min_x = stupidsol.x
 minshots = np.array(minshots)
-headers = ['X', 'Y', 'Z',"T0","t0"]
-np.savetxt(meth+"_shots_" + target_filename_noext[3:] + "_"+ str(n_restarts)  + ".csv", minshots, delimiter=',', header=','.join(headers), comments='')
+headers = ['X', 'Y', 'Z',"t0","T0"]
+np.savetxt(meth+"_shots_" + target_filename_noext[2:] + "_fatol" + str(np.round(fatol,3)) + "_deltaT" + str(np.round(deltaT,3)) + "_deltat" + str(np.round(deltat,3))+ "_" + str(n_restarts)  + ".csv", minshots, delimiter=',', header=','.join(headers), comments='')
 
 print("Shots: " + str(n_restarts))
 print("Mean: " + str(np.round(np.mean(minshots),4)))
