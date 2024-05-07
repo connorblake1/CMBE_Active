@@ -23,6 +23,7 @@ def stack(fname,basedf,value):
     result_df.to_csv(fname,index=False)
 data_start = [(830,False),(840,False),(845,False),(850,False),(855,False),(860,False),(865,False),(870,False),(875,False),(880,False),(885,False),(890,False),(895,False),(900,False),(910,False)]
 data_start = [(830,False),(840,False),(850,False),(860,False),(870,False),(880,False),(890,False),(900,False),(910,False)]
+data_start = [(820,False),(830,False),(840,False),(850,False),(860,False),(870,False),(880,False),(890,False),(900,False)]
 #data_start = [(830,False),(860,False),(890,False),(900,False),(910,False)]
 PassiveDF = build_from_list("Current.csv",data_start)
 

@@ -219,7 +219,7 @@ import joblib
 from tqdm import tqdm
 
 # Define the parameters
-temperatures = np.arange(840, 911, 1)  # Temperature range
+temperatures = np.arange(820, 901, 1)  # Temperature range
 wavelengths = [443, 514, 689, 781, 817]  # Wavelengths
 #times = np.arange(1, 5001, 250)  # Time range
 print(calib_filename_noext+calib_extension)
