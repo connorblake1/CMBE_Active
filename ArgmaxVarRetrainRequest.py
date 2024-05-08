@@ -234,7 +234,7 @@ scaler = joblib.load("scaler.pkl")
 all_combinations = []
 for temperature in temperatures:
     #max_time = 5000 + 100 * (910 - temperature)
-    max_time = np.exp((-temperature-298)*0.020118))*1.75884*(10**14)
+    max_time = np.exp((-temperature-298)*0.020118)*1.75884*(10**14)
     times = np.arange(1, max_time + 1, 250)  # Adjust times dynamically
     for time in times:
         for wavelength in wavelengths:

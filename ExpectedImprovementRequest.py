@@ -185,8 +185,8 @@ def expected_improvement(x):
     penalty = 0 # penalty for going out of bounds in time
     #if ti > 5000 + 100*(910-Ti):
     #    penalty = (ti-(5000+100*(910-Ti)))**2
-    if ti > np.exp((-Ti-298)*0.020118))*1.75884*(10**14):
-        penalty = (ti-(np.exp((-Ti-298)*0.020118))*1.75884*(10**14)))**2
+    if ti > np.exp((-Ti-298)*0.020118)*1.75884*(10**14):
+        penalty = (ti-(np.exp((-Ti-298)*0.020118)*1.75884*(10**14)))**2
     Lmu,Lsigma = Lstats(x)
     Lmu = -Lmu
     imp = Lmu-max_sample-xi
