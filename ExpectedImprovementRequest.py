@@ -40,17 +40,18 @@ fkey = '689Rc'
 X = df[['temperature', 'time', 'wavelength', fkey]]
 yR = df['R'].to_numpy()
 yA = df['A'].to_numpy()
-
+print("Dataframe loaded.")
 # Data standardization
 X_scaled = scaler.transform(X)
 # Convert scaled data and target to PyTorch tensors
 X_train = torch.tensor(X_scaled, dtype=torch.float32)
 y_train_R = torch.tensor(yR, dtype=torch.float32).reshape(-1)
 y_train_A = torch.tensor(yA, dtype=torch.float32).reshape(-1)
+print("Data transformed.")
 # Save the tensors
-torch.save(X_train, 'X_train'+calib_filename_noextdot+'.pt')
-torch.save(y_train_R, 'y_train_R'+calib_filename_noextdot+'.pt')
-torch.save(y_train_A, 'y_train_A'+calib_filename_noextdot+'.pt')
+# torch.save(X_train, 'X_train'+calib_filename_noextdot+'.pt')
+# torch.save(y_train_R, 'y_train_R'+calib_filename_noextdot+'.pt')
+# torch.save(y_train_A, 'y_train_A'+calib_filename_noextdot+'.pt')
 
 class GPModel(ExactGP):
     def __init__(self, train_x, train_y, likelihood):
@@ -81,18 +82,19 @@ with torch.no_grad():
     model_A(X_train)  # Populate cache for fantasy update
 # model_R = model_R.get_fantasy_model(X_train, y_train_R)
 torch.save(model_A.state_dict(), 'model_A.pth')
+print("Models built.")
 # PART 2: LOADING IN TARGET
 # Load in Target Info
 df_target = pd.read_csv(sys.argv[3])
 cwavR = df_target.set_index('wav')['cWavR'].to_dict()
 cwavA = df_target.set_index('wav')['cWavA'].to_dict()
 twavR = df_target.set_index('wav')['tWavR'].to_dict()
-
+print("Target Loaded.")
 def loss(RTi, Ai, R_stdi, A_stdi):  # convex wrt RT, A, RT and A are dicts with key as wavelength (int)
     L = 0
     for key in RTi:
         L += cwavR[key] * ((RTi[key] - twavR[key]) ** 2+ (2 * R_stdi[key])**2)
-        L += cwavA[key] * (Ai[key] ** 2 + (2 * A_stdi[key])**2)
+        # L += cwavA[key] * (Ai[key] ** 2 + (2 * A_stdi[key])**2)
     return L
 
 print(calib_filename_noext+calib_extension)
@@ -103,12 +105,16 @@ print(fkey + " Extracted from " + calib_filename_noextdot + " with value of " + 
 
 wavelengths = [443, 514, 689, 781, 817]
 
-Tmin = 840
-Tmax = 910
-tmin = 1000
-tmax = 12000
+Tmin = 820
+Tmax = 900
+tmin = 0
+tmax = 30000
 
 def loss_caller(x): # x = [time, Temp]
+    RT, A, R_std, A_std = full_predictions(x)
+    return loss(RT, A, R_std, A_std)
+
+def full_predictions(x):
     ti = x[0]
     Ti = x[1]
     RT = dict()
@@ -128,7 +134,8 @@ def loss_caller(x): # x = [time, Temp]
         A[wav] = A_preds.mean.detach().numpy()[i]
         R_std[wav] = np.sqrt(R_preds.variance.detach().numpy()[i])
         A_std[wav] = np.sqrt(A_preds.variance.detach().numpy()[i])
-    return loss(RT, A, R_std, A_std)
+    return [RT, A, R_std, A_std]
+
 # PART 3: Expected Improvement Algorithm
 # https://krasserm.github.io/2018/03/21/bayesian-optimization/
 boundsIn = np.array([[tmin,tmax],[Tmin,Tmax]])
@@ -208,7 +215,8 @@ def expected_improvement(x):
 #     if res.fun < min_val:
 #         min_val = res.fun
 #         min_x = res.x
-n_restarts = 25
+print("Starting minimization.")
+n_restarts = 25 # TODO 25
 stupid_min_val = 1000
 stupid_min_x = None
 minshots = []
@@ -251,6 +259,8 @@ for key in cwavR.keys():
     print("Wavelength: " + str(key) + " CwavR: " + str(cwavR[key]) + " CwavA: " + str(cwavA[key]) + " twavR: " + str(twavR[key]))
 
 print("Saving Pure Loss Min...")
+def r3(val): # utility to round things
+    return np.round(val,3)
 
 # TODO make min_x
 # Save the DataFrame to an Excel file
@@ -261,9 +271,15 @@ def write_to_csv(value):
     if not os.path.isfile(output_log_name):
         with open(output_log_name, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['Date and Time','Calibration Name','TargetName','TempC','TimeS','Loss'])
+            writer.writerow(['Date and Time','Calibration Name','TargetName','TempC','TimeS','Loss','RT1','RT2','RT3','RT4','RT5','A1','A2','A3','A4','A5','RTs1','RTs2','RTs3','RTs4','RTs5','As1','As2','As3','As4','As5'])
     with open(output_log_name, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow([current_datetime, calib_filename_noextdot,target_filename_noextdot,np.round(value[1]),np.round(value[0]),np.round(loss_caller(value),3)])
+        RTout, Aout, Rstdout, Astdout = full_predictions(value)
+        writer.writerow([current_datetime, calib_filename_noextdot,target_filename_noextdot,
+                         np.round(value[1]),np.round(value[0]),r3(loss_caller(value)),
+                         r3(RTout[443]),r3(RTout[514]),r3(RTout[689]),r3(RTout[781]),r3(RTout[817]),
+                         r3(Aout[443]), r3(Aout[514]), r3(Aout[689]), r3(Aout[781]), r3(Aout[817]),
+                         r3(Rstdout[443]), r3(Rstdout[514]), r3(Rstdout[689]), r3(Rstdout[781]), r3(Rstdout[817]),
+                         r3(Astdout[443]), r3(Astdout[514]), r3(Astdout[689]), r3(Astdout[781]), r3(Astdout[817])])
 write_to_csv(stupid_min_x)
 print(f"Optimal growth saved to {output_log_name}")
