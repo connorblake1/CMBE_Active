@@ -56,7 +56,8 @@ print("Data transformed.")
 class GPModel(ExactGP):
     def __init__(self, train_x, train_y, likelihood):
         super(GPModel, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = LinearMean(input_size=train_x.size(-1))
+        #self.mean_module = LinearMean(input_size=train_x.size(-1))
+        self.mean_module = ZeroMean()
         self.covar_module = ScaleKernel(RBFKernel(ard_num_dims=train_x.size(-1)))
 
     def forward(self, x):
@@ -106,7 +107,7 @@ print(fkey + " Extracted from " + calib_filename_noextdot + " with value of " + 
 wavelengths = [443, 514, 689, 781, 817]
 
 Tmin = 820
-Tmax = 900
+Tmax = 880
 tmin = 0
 tmax = 30000
 
@@ -192,8 +193,10 @@ def expected_improvement(x):
     penalty = 0 # penalty for going out of bounds in time
     #if ti > 5000 + 100*(910-Ti):
     #    penalty = (ti-(5000+100*(910-Ti)))**2
-    if ti > np.exp((-Ti-298)*0.020118)*1.75884*(10**14):
-        penalty = (ti-(np.exp((-Ti-298)*0.020118)*1.75884*(10**14)))**2
+    #if ti > np.exp((-Ti-298)*0.020118)*1.75884*(10**14):
+    #    penalty = (ti-(np.exp((-Ti-298)*0.020118)*1.75884*(10**14)))**2
+    if ti > (3.2163e+14 * np.exp(-2.8490e-02 * Ti)):
+        penalty = (ti-(3.2163e+14 * np.exp(-2.8490e-02 * Ti)))**2
     Lmu,Lsigma = Lstats(x)
     Lmu = -Lmu
     imp = Lmu-max_sample-xi

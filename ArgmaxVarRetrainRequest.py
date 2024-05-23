@@ -45,6 +45,7 @@ import os
 import gpytorch.constraints as constraints
 from gpytorch.models import ExactGP
 from gpytorch.means import LinearMean
+from gpytorch.means import ZeroMean
 from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood
@@ -80,7 +81,8 @@ if len(sys.argv) == 4:
     class GPModel(ExactGP):
         def __init__(self, train_x, train_y, likelihood):
             super(GPModel, self).__init__(train_x, train_y, likelihood)
-            self.mean_module = LinearMean(input_size=train_x.size(-1))
+            #self.mean_module = LinearMean(input_size=train_x.size(-1))
+            self.mean_module = ZeroMean()
             self.covar_module = ScaleKernel(RBFKernel(ard_num_dims=train_x.size(-1)))
 
         def forward(self, x):
@@ -179,7 +181,8 @@ if len(sys.argv) == 5:
     class GPModel(ExactGP):
         def __init__(self, train_x, train_y, likelihood):
             super(GPModel, self).__init__(train_x, train_y, likelihood)
-            self.mean_module = LinearMean(input_size=train_x.size(-1))
+            #self.mean_module = LinearMean(input_size=train_x.size(-1))
+            self.mean_module = ZeroMean()
             self.covar_module = ScaleKernel(RBFKernel(ard_num_dims=train_x.size(-1)))
 
         def forward(self, x):
@@ -219,7 +222,7 @@ import joblib
 from tqdm import tqdm
 
 # Define the parameters
-temperatures = np.arange(820, 901, 1)  # Temperature range
+temperatures = np.arange(820, 881, 1)  # Temperature range
 wavelengths = [443, 514, 689, 781, 817]  # Wavelengths
 #times = np.arange(1, 5001, 250)  # Time range
 print(calib_filename_noext+calib_extension)
@@ -234,7 +237,8 @@ scaler = joblib.load("scaler.pkl")
 all_combinations = []
 for temperature in temperatures:
     #max_time = 5000 + 100 * (910 - temperature)
-    max_time = np.exp((-temperature-298)*0.020118)*1.75884*(10**14)
+    #max_time = np.exp((-temperature-298)*0.020118)*1.75884*(10**14)
+    max_time = 3.2163e+14 * np.exp(-2.8490e-02 * temperature)
     times = np.arange(1, max_time + 1, 250)  # Adjust times dynamically
     for time in times:
         for wavelength in wavelengths:
