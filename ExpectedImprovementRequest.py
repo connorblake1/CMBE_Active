@@ -232,21 +232,26 @@ meth = "Nelder-Mead"
 deltaT = 50
 deltat = 2000
 fatol = .1
+import torch
+import torch.optim as optim
 for x0 in tqdm(np.random.uniform(boundsIn[:, 0], boundsIn[:, 1], size=(n_restarts, 2))):
     # 5000 + 100 * (910 - temperature)
-    # stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method=meth,options={'initial_simplex':[[x0[0],x0[1]],[x0[0]+deltat,x0[1]],[x0[0],x0[1]+deltaT]],'fatol':fatol})
-    stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method="L-BFGS-B", options={'eps':1})
+    # scipy min
+    stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method=meth,options={'initial_simplex':[[x0[0],x0[1]],[x0[0]+deltat,x0[1]],[x0[0],x0[1]+deltaT]],'fatol':fatol})
     minshots.append((stupidsol.x[0],stupidsol.x[1],stupidsol.fun,x0[0],x0[1]))
     print(len(minshots))
+    print("Min Sample Shot " + str(np.round(stupidsol.x[0],4)) + " " + str(np.round(stupidsol.x[1],4)) + ": " + str(np.round(stupidsol.fun,4)) + " retries: " + str(stupidsol.nfev))
+    if stupidsol.fun < stupid_min_val:
+        stupid_min_val = stupidsol.fun
+        stupid_min_x = stupidsol.x
+
     RTouti, Aouti, Rstdouti, Astdouti = full_predictions(stupidsol.x)
     print("RT: "+r3(RTouti[443]) + " " + r3(RTouti[514]) + " " + r3(RTouti[689]) + " " + r3(RTouti[781]) + " " + r3(RTouti[817])  + " \n" +
                         "A: "+  r3(Aouti[443]) + " " +  r3(Aouti[514]) + " " +  r3(Aouti[689])  + " " +  r3(Aouti[781])  + " " +  r3(Aouti[817])  + " \n" +
                          "RTstd: "+ r3(Rstdouti[443]) + " " +   r3(Rstdouti[514]) + " " +   r3(Rstdouti[689]) + " " +  r3(Rstdouti[781]) + " " +  r3(Rstdouti[817]) + " \n" +
                          "Astd: "+ r3(Astdouti[443]) + " " +  r3(Astdouti[514]) + " " +  r3(Astdouti[689]) + " " +  r3(Astdouti[781]) + " " +  r3(Astdouti[817]) )
-    print("Min Sample Shot " + str(np.round(stupidsol.x[0],4)) + " " + str(np.round(stupidsol.x[1],4)) + ": " + str(np.round(stupidsol.fun,4)) + " retries: " + str(stupidsol.nfev))
-    if stupidsol.fun < stupid_min_val:
-        stupid_min_val = stupidsol.fun
-        stupid_min_x = stupidsol.x
+    print("Min Sample Shot " + str(np.round(stupidsol.x[0],4)) + " " + str(np.round(stupidsol.x[1],4)) + ": " + str(np.round(stupid_min_val,4)))# + " retries: " + str(stupidsol.nfev))
+
 minshots = np.array(minshots)
 headers = ['X', 'Y', 'Z',"t0","T0"]
 np.savetxt(meth+"_shots_" + target_filename_noext[2:] + "_fatol" + str(np.round(fatol,3)) + "_deltaT" + str(np.round(deltaT,3)) + "_deltat" + str(np.round(deltat,3))+ "_" + str(n_restarts)  + ".csv", minshots, delimiter=',', header=','.join(headers), comments='')
