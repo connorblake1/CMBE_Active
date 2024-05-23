@@ -16,6 +16,7 @@ import joblib
 import gpytorch.constraints as constraints
 from gpytorch.models import ExactGP
 from gpytorch.means import LinearMean
+from gpytorch.means import ZeroMean
 from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood
@@ -95,7 +96,9 @@ def loss(RTi, Ai, R_stdi, A_stdi):  # convex wrt RT, A, RT and A are dicts with 
     L = 0
     for key in RTi:
         L += cwavR[key] * ((RTi[key] - twavR[key]) ** 2+ (2 * R_stdi[key])**2)
-        # L += cwavA[key] * (Ai[key] ** 2 + (2 * A_stdi[key])**2)
+        # if abs(RTi[key]-twavR[key]) > .01:
+        #     L += cwavR[key] * 100 * abs(RTi[key] - twavR[key]) ** 2
+        L += cwavA[key] * (Ai[key] ** 2 + (2 * A_stdi[key])**2)
     return L
 
 print(calib_filename_noext+calib_extension)
@@ -218,6 +221,8 @@ def expected_improvement(x):
 #     if res.fun < min_val:
 #         min_val = res.fun
 #         min_x = res.x
+def r3(val): # utility to round things
+    return str(np.round(val,3))
 print("Starting minimization.")
 n_restarts = 25 # TODO 25
 stupid_min_val = 1000
@@ -229,9 +234,15 @@ deltat = 2000
 fatol = .1
 for x0 in tqdm(np.random.uniform(boundsIn[:, 0], boundsIn[:, 1], size=(n_restarts, 2))):
     # 5000 + 100 * (910 - temperature)
-    stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method=meth,options={'initial_simplex':[[x0[0],x0[1]],[x0[0]+deltat,x0[1]],[x0[0],x0[1]+deltaT]],'fatol':fatol})
+    # stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method=meth,options={'initial_simplex':[[x0[0],x0[1]],[x0[0]+deltat,x0[1]],[x0[0],x0[1]+deltaT]],'fatol':fatol})
+    stupidsol = scipy.optimize.minimize(loss_caller, x0=x0, bounds=boundsIn, method="L-BFGS-B", options={'eps':1})
     minshots.append((stupidsol.x[0],stupidsol.x[1],stupidsol.fun,x0[0],x0[1]))
     print(len(minshots))
+    RTouti, Aouti, Rstdouti, Astdouti = full_predictions(stupidsol.x)
+    print("RT: "+r3(RTouti[443]) + " " + r3(RTouti[514]) + " " + r3(RTouti[689]) + " " + r3(RTouti[781]) + " " + r3(RTouti[817])  + " \n" +
+                        "A: "+  r3(Aouti[443]) + " " +  r3(Aouti[514]) + " " +  r3(Aouti[689])  + " " +  r3(Aouti[781])  + " " +  r3(Aouti[817])  + " \n" +
+                         "RTstd: "+ r3(Rstdouti[443]) + " " +   r3(Rstdouti[514]) + " " +   r3(Rstdouti[689]) + " " +  r3(Rstdouti[781]) + " " +  r3(Rstdouti[817]) + " \n" +
+                         "Astd: "+ r3(Astdouti[443]) + " " +  r3(Astdouti[514]) + " " +  r3(Astdouti[689]) + " " +  r3(Astdouti[781]) + " " +  r3(Astdouti[817]) )
     print("Min Sample Shot " + str(np.round(stupidsol.x[0],4)) + " " + str(np.round(stupidsol.x[1],4)) + ": " + str(np.round(stupidsol.fun,4)) + " retries: " + str(stupidsol.nfev))
     if stupidsol.fun < stupid_min_val:
         stupid_min_val = stupidsol.fun
@@ -262,8 +273,7 @@ for key in cwavR.keys():
     print("Wavelength: " + str(key) + " CwavR: " + str(cwavR[key]) + " CwavA: " + str(cwavA[key]) + " twavR: " + str(twavR[key]))
 
 print("Saving Pure Loss Min...")
-def r3(val): # utility to round things
-    return np.round(val,3)
+
 
 # TODO make min_x
 # Save the DataFrame to an Excel file
